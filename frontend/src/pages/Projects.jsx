@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
 import {
   Search,
   Plus,
@@ -20,86 +21,10 @@ import {
 
 import RiskBadge from "../components/RiskBadge";
 
-const initialProjects = [
-  {
-    id: 1,
-    code: "NHE-2026-014",
-    name: "National Highway Expansion",
-    ministry: "Ministry of Road Transport",
-    sector: "Roads & Highways",
-    location: "Bihar",
-    progress: 48,
-    status: "At Risk",
-    risk: "Critical",
-    riskScore: 86,
-    budget: "₹850 Cr",
-    startDate: "12 Jan 2025",
-    endDate: "30 Dec 2027",
-  },
-  {
-    id: 2,
-    code: "MIP-2026-031",
-    name: "Metro Infrastructure Project",
-    ministry: "Ministry of Housing",
-    sector: "Urban Transport",
-    location: "Delhi",
-    progress: 72,
-    status: "At Risk",
-    risk: "High",
-    riskScore: 71,
-    budget: "₹1,240 Cr",
-    startDate: "10 Mar 2025",
-    endDate: "15 Aug 2027",
-  },
-  {
-    id: 3,
-    code: "SCD-2026-042",
-    name: "Smart City Development",
-    ministry: "Ministry of Urban Affairs",
-    sector: "Smart Cities",
-    location: "Maharashtra",
-    progress: 81,
-    status: "On Track",
-    risk: "Medium",
-    riskScore: 54,
-    budget: "₹620 Cr",
-    startDate: "05 Feb 2025",
-    endDate: "20 Nov 2027",
-  },
-  {
-    id: 4,
-    code: "RRC-2026-018",
-    name: "Rural Road Connectivity",
-    ministry: "Ministry of Rural Development",
-    sector: "Rural Roads",
-    location: "Uttar Pradesh",
-    progress: 34,
-    status: "Delayed",
-    risk: "Medium",
-    riskScore: 48,
-    budget: "₹410 Cr",
-    startDate: "20 Apr 2025",
-    endDate: "10 Jun 2027",
-  },
-  {
-    id: 5,
-    code: "RBC-2026-009",
-    name: "River Bridge Construction",
-    ministry: "Ministry of Road Transport",
-    sector: "Bridges",
-    location: "West Bengal",
-    progress: 66,
-    status: "At Risk",
-    risk: "High",
-    riskScore: 62,
-    budget: "₹730 Cr",
-    startDate: "15 Feb 2025",
-    endDate: "25 Sep 2027",
-  },
-];
-
 export default function Projects() {
-  const [projects, setProjects] = useState(initialProjects);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -108,6 +33,54 @@ export default function Projects() {
   const [showAdd, setShowAdd] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [editingProject, setEditingProject] = useState(null);
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await axios.get(
+        "http://localhost:5000/api/projects"
+      );
+
+      const data = response.data.projects || [];
+      setProjects(data.map(formatProject));
+    } catch (error) {
+      console.error("Fetch Projects Error:", error);
+      setError(
+        "Unable to load projects. Please check that the backend server is running."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatProject = (project) => ({
+    ...project,
+    id: project._id,
+    code: project.projectCode,
+    progress: project.physicalProgress || 0,
+    risk: project.riskLevel || "Low",
+    budget: `₹${project.approvedCost || 0} Cr`,
+    startDate: project.startDate
+      ? new Date(project.startDate).toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+      : "",
+    endDate: project.expectedCompletion
+      ? new Date(project.expectedCompletion).toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+      : "",
+  });
 
   const filteredProjects = useMemo(() => {
     return projects.filter((project) => {
@@ -131,47 +104,157 @@ export default function Projects() {
     });
   }, [projects, search, statusFilter, riskFilter]);
 
-  const deleteProject = (id) => {
+  const deleteProject = async (id) => {
     const confirmed = window.confirm(
       "Are you sure you want to delete this project?"
     );
 
     if (!confirmed) return;
 
-    setProjects((prev) =>
-      prev.filter((project) => project.id !== id)
-    );
+    try {
+      await axios.delete(
+        `http://localhost:5000/api/projects/${id}`
+      );
+
+      setProjects((prev) =>
+        prev.filter((project) => project.id !== id)
+      );
+
+      if (selectedProject?.id === id) {
+        setSelectedProject(null);
+      }
+
+      if (editingProject?.id === id) {
+        setEditingProject(null);
+      }
+
+      alert("Project deleted successfully.");
+    } catch (error) {
+      console.error(
+        "Delete Project Error:",
+        error.response?.data || error
+      );
+      alert(
+        error.response?.data?.message ||
+          "Failed to delete project."
+      );
+    }
   };
 
-  const addProject = (project) => {
-    setProjects((prev) => [
-      {
-        ...project,
-        id: Date.now(),
-        code: `PRJ-${new Date().getFullYear()}-${String(
-          prev.length + 1
-        ).padStart(3, "0")}`,
-        riskScore: 20,
-        risk: "Low",
-        progress: 0,
+  const addProject = async (project) => {
+    try {
+      const projectCode = `PRJ-${new Date().getFullYear()}-${String(
+        projects.length + 1
+      ).padStart(3, "0")}`;
+
+      const payload = {
+        projectCode,
+        name: project.name,
+        ministry: project.ministry,
+        sector: project.sector,
+        location: project.location,
+        approvedCost: Number(
+          String(project.budget).replace(/[^\d.]/g, "")
+        ),
+        startDate: project.startDate
+          ? new Date(project.startDate)
+          : undefined,
+        expectedCompletion: project.endDate
+          ? new Date(project.endDate)
+          : undefined,
+        physicalProgress: 0,
+        financialProgress: 0,
         status: "On Track",
-      },
-      ...prev,
-    ]);
+        riskScore: 20,
+        riskLevel: "Low",
+      };
 
-    setShowAdd(false);
+      const response = await axios.post(
+        "http://localhost:5000/api/projects",
+        payload
+      );
+
+      const created = response.data.project;
+
+      if (!created) {
+        throw new Error("Project was not returned by the server.");
+      }
+
+      setProjects((prev) => [
+        formatProject(created),
+        ...prev,
+      ]);
+
+      setShowAdd(false);
+      alert("Project created successfully.");
+    } catch (error) {
+      console.error(
+        "Create Project Error:",
+        error.response?.data || error
+      );
+      alert(
+        error.response?.data?.message ||
+          "Failed to create project."
+      );
+    }
   };
 
-  const updateProject = (updatedProject) => {
-    setProjects((prev) =>
-      prev.map((project) =>
-        project.id === updatedProject.id
-          ? updatedProject
-          : project
-      )
-    );
+  const updateProject = async (updatedProject) => {
+    try {
+      const payload = {
+        name: updatedProject.name,
+        ministry: updatedProject.ministry,
+        sector: updatedProject.sector,
+        location: updatedProject.location,
+        approvedCost: Number(
+          String(updatedProject.budget).replace(/[^\d.]/g, "")
+        ),
+        startDate: updatedProject.startDate
+          ? new Date(updatedProject.startDate)
+          : undefined,
+        expectedCompletion: updatedProject.endDate
+          ? new Date(updatedProject.endDate)
+          : undefined,
+      };
 
-    setEditingProject(null);
+      const response = await axios.put(
+        `http://localhost:5000/api/projects/${updatedProject.id}`,
+        payload
+      );
+
+      const updated = response.data.project;
+
+      if (!updated) {
+        throw new Error("Updated project was not returned by the server.");
+      }
+
+      const formattedProject = formatProject(updated);
+
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === updatedProject.id
+            ? formattedProject
+            : project
+        )
+      );
+
+      setEditingProject(null);
+
+      if (selectedProject?.id === updatedProject.id) {
+        setSelectedProject(formattedProject);
+      }
+
+      alert("Project updated successfully.");
+    } catch (error) {
+      console.error(
+        "Update Project Error:",
+        error.response?.data || error
+      );
+      alert(
+        error.response?.data?.message ||
+          "Failed to update project."
+      );
+    }
   };
 
   return (
@@ -547,7 +630,37 @@ export default function Projects() {
 
             <tbody>
 
-              <AnimatePresence>
+              {loading && (
+                <tr>
+                  <td colSpan="7" className="px-5 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
+                      <p className="mt-3 text-sm text-slate-500">
+                        Loading projects...
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {error && !loading && (
+                <tr>
+                  <td colSpan="7" className="px-5 py-12 text-center">
+                    <p className="text-sm font-medium text-red-500">
+                      {error}
+                    </p>
+                    <button
+                      onClick={fetchProjects}
+                      className="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                    >
+                      Retry
+                    </button>
+                  </td>
+                </tr>
+              )}
+
+              {!loading && !error && (
+                <AnimatePresence>
                 {filteredProjects.map((project) => (
 
                   <motion.tr
@@ -766,7 +879,8 @@ export default function Projects() {
 
                 ))}
 
-              </AnimatePresence>
+                </AnimatePresence>
+              )}
 
             </tbody>
 
@@ -775,7 +889,7 @@ export default function Projects() {
         </div>
 
 
-        {filteredProjects.length === 0 && (
+        {!loading && !error && filteredProjects.length === 0 && (
           <div className="
             flex flex-col
             items-center
@@ -805,7 +919,7 @@ export default function Projects() {
               mt-1 text-xs
               text-slate-400
             ">
-              Try changing your search or filters.
+              No projects are available yet. Click “Add Project” to create one, or try changing your search or filters.
             </p>
 
           </div>
@@ -1022,14 +1136,23 @@ function ProjectModal({
   onClose,
   onSubmit,
 }) {
+  const toDateInputValue = (value) => {
+    if (!value) return "";
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+
+    return date.toISOString().split("T")[0];
+  };
+
   const [form, setForm] = useState({
     name: project?.name || "",
     ministry: project?.ministry || "",
     sector: project?.sector || "",
     location: project?.location || "",
     budget: project?.budget || "",
-    startDate: project?.startDate || "",
-    endDate: project?.endDate || "",
+    startDate: toDateInputValue(project?.startDate),
+    endDate: toDateInputValue(project?.endDate),
   });
 
   const handleSubmit = (e) => {
@@ -1207,6 +1330,7 @@ function ProjectModal({
 
             <Input
               label="Start Date"
+              type="date"
               value={form.startDate}
               onChange={(value) =>
                 setForm({
@@ -1219,6 +1343,7 @@ function ProjectModal({
 
             <Input
               label="Expected Completion"
+              type="date"
               value={form.endDate}
               onChange={(value) =>
                 setForm({
@@ -1293,6 +1418,7 @@ function Input({
   value,
   onChange,
   placeholder,
+  type = "text",
 }) {
   return (
     <label className="block">
@@ -1307,6 +1433,7 @@ function Input({
       </span>
 
       <input
+        type={type}
         value={value}
         onChange={(e) =>
           onChange(e.target.value)

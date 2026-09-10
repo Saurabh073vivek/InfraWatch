@@ -4,6 +4,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const projectRoutes = require("./routes/projectRoutes");
+const progressRoutes = require("./routes/progressRoutes");
 
 const app = express();
 
@@ -33,6 +34,10 @@ app.use(
   projectRoutes
 );
 
+app.use(
+  "/api",
+  progressRoutes
+);
 
 // Test route
 app.get("/", (req, res) => {
