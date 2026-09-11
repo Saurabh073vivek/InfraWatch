@@ -1,7 +1,11 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import DashboardLayout from "./layouts/DashboardLayout";
+
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
+import Monitoring from "./pages/Monitoring";
+import AIRisk from "./pages/AIRisk";
 
 function Placeholder({ title }) {
   return (
@@ -22,56 +26,83 @@ export default function App() {
     <BrowserRouter>
       <Routes>
 
+        {/* ================================
+            DASHBOARD LAYOUT
+        ================================= */}
+
         <Route element={<DashboardLayout />}>
 
-          <Route path="/" element={<Dashboard />} />
+          {/* Dashboard */}
+          <Route
+            path="/"
+            element={<Dashboard />}
+          />
 
+          {/* Projects */}
           <Route
             path="/projects"
             element={<Projects />}
           />
 
+          {/* Monitoring */}
           <Route
             path="/monitoring"
-            element={<Placeholder title="Monitoring" />}
+            element={<Monitoring />}
           />
 
+          {/* AI Risk Prediction */}
           <Route
             path="/ai-risk"
-            element={<Placeholder title="AI Risk Prediction" />}
+            element={<AIRisk />}
           />
 
+          {/* Alerts */}
           <Route
             path="/alerts"
-            element={<Placeholder title="Early Warnings" />}
+            element={
+              <Placeholder title="Early Warnings" />
+            }
           />
 
+          {/* Analytics */}
           <Route
             path="/analytics"
-            element={<Placeholder title="Analytics" />}
+            element={
+              <Placeholder title="Analytics" />
+            }
           />
 
+          {/* Project Map */}
           <Route
             path="/map"
-            element={<Placeholder title="Project Map" />}
+            element={
+              <Placeholder title="Project Map" />
+            }
           />
 
+          {/* Reports */}
           <Route
             path="/reports"
-            element={<Placeholder title="Reports" />}
+            element={
+              <Placeholder title="Reports" />
+            }
           />
 
+          {/* Settings */}
           <Route
             path="/settings"
-            element={<Placeholder title="Settings" />}
+            element={
+              <Placeholder title="Settings" />
+            }
           />
 
+          {/* Profile */}
           <Route
             path="/profile"
-            element={<Placeholder title="Profile" />}
+            element={
+              <Placeholder title="Profile" />
+            }
           />
-
-          
 
         </Route>
 

@@ -5,16 +5,21 @@ require("dotenv").config();
 
 const projectRoutes = require("./routes/projectRoutes");
 const progressRoutes = require("./routes/progressRoutes");
+const riskRoutes = require("./routes/riskRoutes");
 
 const app = express();
 
+// ==========================================
+// MIDDLEWARE
+// ==========================================
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
+// ==========================================
+// MONGODB CONNECTION
+// ==========================================
 
-// MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
@@ -27,8 +32,10 @@ mongoose
     );
   });
 
+// ==========================================
+// ROUTES
+// ==========================================
 
-// Routes
 app.use(
   "/api/projects",
   projectRoutes
@@ -39,13 +46,24 @@ app.use(
   progressRoutes
 );
 
-// Test route
+app.use(
+  "/api",
+  riskRoutes
+);
+
+// ==========================================
+// TEST ROUTE
+// ==========================================
+
 app.get("/", (req, res) => {
   res.json({
     message: "InfraWatch API is running",
   });
 });
 
+// ==========================================
+// SERVER
+// ==========================================
 
 const PORT = process.env.PORT || 5000;
 
