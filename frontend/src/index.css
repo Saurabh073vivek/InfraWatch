@@ -60,3 +60,67 @@ button {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+
+/* ==========================================
+   REPORT PDF PRINT STYLING
+========================================== */
+
+@media print {
+  /* Hide everything first */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Show only Reports page */
+  .report-page,
+  .report-page * {
+    visibility: visible !important;
+  }
+
+  /* Put report at the top-left of the PDF */
+  .report-page {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    background: white !important;
+  }
+
+  /* Hide buttons and interactive controls */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Remove dark dashboard background */
+  html,
+  body {
+    background: white !important;
+  }
+
+  /* Better PDF page */
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  /* Avoid breaking important sections */
+  .report-page > div {
+    break-inside: avoid;
+  }
+
+  table {
+    break-inside: auto;
+  }
+
+  tr {
+    break-inside: avoid;
+  }
+
+  /* Remove shadows during printing */
+  .report-page * {
+    box-shadow: none !important;
+  }
+}

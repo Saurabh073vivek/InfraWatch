@@ -6,6 +6,10 @@ import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
 import Monitoring from "./pages/Monitoring";
 import AIRisk from "./pages/AIRisk";
+import Alerts from "./pages/Alerts";
+import Analytics from "./pages/Analytics";
+import ProjectMap from "./pages/ProjectMap";
+import Reports from "./pages/Reports";
 
 function Placeholder({ title }) {
   return (
@@ -26,9 +30,9 @@ export default function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* ================================
+        {/* =================================
             DASHBOARD LAYOUT
-        ================================= */}
+        ================================== */}
 
         <Route element={<DashboardLayout />}>
 
@@ -59,33 +63,25 @@ export default function App() {
           {/* Alerts */}
           <Route
             path="/alerts"
-            element={
-              <Placeholder title="Early Warnings" />
-            }
+            element={<Alerts />}
           />
 
           {/* Analytics */}
           <Route
             path="/analytics"
-            element={
-              <Placeholder title="Analytics" />
-            }
+            element={<Analytics />}
           />
 
           {/* Project Map */}
           <Route
             path="/map"
-            element={
-              <Placeholder title="Project Map" />
-            }
+            element={<ProjectMap />}
           />
 
           {/* Reports */}
           <Route
             path="/reports"
-            element={
-              <Placeholder title="Reports" />
-            }
+            element={<Reports />}
           />
 
           {/* Settings */}
