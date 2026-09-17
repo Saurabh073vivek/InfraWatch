@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Activity,
   AlertTriangle,
@@ -21,6 +21,7 @@ import {
 const API_URL = "http://localhost:5000/api";
 
 export default function AIRisk() {
+
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] =
     useState("");
@@ -37,6 +38,7 @@ export default function AIRisk() {
     useState(false);
 
   const [error, setError] = useState("");
+  const riskRequestRef = useRef(0);
 
   // ==========================================
   // LOAD PROJECTS
@@ -60,7 +62,14 @@ export default function AIRisk() {
       setProjects(data);
 
       if (data.length > 0) {
-        setSelectedProjectId(data[0]._id);
+        setSelectedProjectId((currentId) => {
+          const stillExists = data.some(
+            (project) => project._id === currentId
+          );
+          return stillExists ? currentId : data[0]._id;
+        });
+      } else {
+        setSelectedProjectId("");
       }
     } catch (error) {
       console.error(
@@ -84,27 +93,72 @@ export default function AIRisk() {
     if (selectedProjectId) {
       fetchRisk(selectedProjectId);
     } else {
+      riskRequestRef.current += 1;
       setRisk(null);
     }
   }, [selectedProjectId]);
 
   const fetchRisk = async (projectId) => {
+    const requestId = ++riskRequestRef.current;
+    const storageKey = `infrawatch_ml_risk_${projectId}`;
+    let savedPrediction = null;
+
+    const savedML = localStorage.getItem(storageKey);
+
+    if (savedML) {
+      try {
+        savedPrediction = JSON.parse(savedML);
+
+        if (!savedPrediction?.riskLevel) {
+          savedPrediction = null;
+          localStorage.removeItem(storageKey);
+        }
+      } catch (storageError) {
+        console.warn("Invalid saved ML prediction:", storageError);
+        localStorage.removeItem(storageKey);
+      }
+    }
+
+    if (savedPrediction) {
+      setRisk({
+        prediction: savedPrediction,
+      });
+    }
+
     try {
       setLoadingRisk(true);
       setError("");
 
+      // Load the normal/rule-engine risk from the backend.
       const response = await axios.get(
         `${API_URL}/projects/${projectId}/risk`
       );
 
-      setRisk(response.data);
+      const riskResponse = response.data;
+
+      // Restore the latest Random Forest result if it was already
+      // generated for this project. This prevents the UI from
+      // falling back to 25/100 and 0% confidence after refresh.
+      if (savedPrediction) {
+        riskResponse.prediction = savedPrediction;
+      }
+
+      if (requestId === riskRequestRef.current) {
+        setRisk(riskResponse);
+      }
     } catch (error) {
       console.error(
         "Fetch Risk Error:",
         error
       );
 
-      setRisk(null);
+      if (requestId === riskRequestRef.current) {
+        setRisk(
+          savedPrediction
+            ? { prediction: savedPrediction }
+            : null
+        );
+      }
 
       if (
         error.response?.status !== 404
@@ -114,7 +168,9 @@ export default function AIRisk() {
         );
       }
     } finally {
-      setLoadingRisk(false);
+      if (requestId === riskRequestRef.current) {
+        setLoadingRisk(false);
+      }
     }
   };
 
@@ -141,76 +197,162 @@ export default function AIRisk() {
   const prediction =
     risk?.prediction || null;
 
-  const riskScore =
-    Number(riskData.riskScore || 0);
+  // Latest ML result has priority over the initial rule-engine result.
+  const riskScore = Number(
+    prediction?.riskScore ??
+      riskData.riskScore ??
+      0
+  );
 
   const riskLevel =
-    riskData.riskLevel || "Low";
+    prediction?.riskLevel ||
+    riskData.riskLevel ||
+    "Low";
 
-  const factors =
-    prediction?.factors || [];
+  const progressGap = Number(
+    prediction?.progressGap ??
+      riskData.progressGap ??
+      0
+  );
 
-  const progressGap =
-    Number(
-      prediction?.progressGap || 0
-    );
+  const costEscalation = Number(
+    prediction?.costEscalation ??
+      riskData.costEscalation ??
+      0
+  );
 
-  const costEscalation =
-    Number(
-      prediction?.costEscalation || 0
-    );
+  const confidence = Number(
+    prediction?.confidence ??
+      0
+  );
 
-  // ==========================================
-  // RUN RISK ANALYSIS
-  // ==========================================
-
-  const runRiskAnalysis = async () => {
-    if (!selectedProjectId) {
-      alert("Please select a project.");
-      return;
+  // The ML API may not return factors, so create
+  // simple explainable factors from its inputs.
+  const factors = useMemo(() => {
+    if (prediction?.factors?.length) {
+      return prediction.factors;
     }
 
-    try {
-      setRunningAnalysis(true);
-      setError("");
+    const generated = [];
 
-      const response = await axios.post(
-        `${API_URL}/projects/${selectedProjectId}/risk`
-      );
-
-      setRisk({
-        success: true,
-        risk: {
-          riskScore:
-            response.data.prediction
-              ?.riskScore || 0,
-
-          riskLevel:
-            response.data.prediction
-              ?.riskLevel || "Low",
-        },
-
-        prediction:
-          response.data.prediction,
+    if (progressGap >= 10) {
+      generated.push({
+        factor: "Significant Progress Delay",
+        impact: "High",
+        points: Math.min(30, Math.round(progressGap * 2.5)),
+        message: `Project is ${progressGap}% behind the planned progress.`,
       });
-
-      // Refresh project list because
-      // risk score/status may have changed.
-      await fetchProjects();
-    } catch (error) {
-      console.error(
-        "Risk Analysis Error:",
-        error
-      );
-
-      setError(
-        error.response?.data?.message ||
-          "Failed to generate risk prediction."
-      );
-    } finally {
-      setRunningAnalysis(false);
+    } else if (progressGap > 0) {
+      generated.push({
+        factor: "Progress Delay",
+        impact: "Medium",
+        points: Math.min(20, Math.round(progressGap * 2)),
+        message: `Project is ${progressGap}% behind the planned progress.`,
+      });
     }
-  };
+
+    if (costEscalation > 15) {
+      generated.push({
+        factor: "High Cost Escalation",
+        impact: "High",
+        points: 25,
+        message: `Revised cost is ${costEscalation}% above the approved cost.`,
+      });
+    } else if (costEscalation > 5) {
+      generated.push({
+        factor: "Cost Escalation",
+        impact: "Medium",
+        points: 15,
+        message: `Revised cost is ${costEscalation}% above the approved cost.`,
+      });
+    }
+
+    if (generated.length === 0) {
+      generated.push({
+        factor: "Stable Project Indicators",
+        impact: "Low",
+        points: 0,
+        message: "No significant progress or cost deviation was detected.",
+      });
+    }
+
+    return generated;
+  }, [prediction, progressGap, costEscalation]);
+
+ // ==========================================
+// RUN RISK ANALYSIS
+// ==========================================
+
+const runRiskAnalysis = async () => {
+  if (!selectedProjectId) {
+    alert("Please select a project.");
+    return;
+  }
+
+  const projectId = selectedProjectId;
+  const requestId = ++riskRequestRef.current;
+
+  try {
+    setRunningAnalysis(true);
+    setError("");
+
+    // Call Random Forest ML service through backend
+    const response = await axios.post(
+      `${API_URL}/projects/${projectId}/ml-risk`
+    );
+
+    const result = response.data;
+
+    if (!result?.success || !result?.prediction) {
+      throw new Error(
+        result?.message || "ML prediction failed."
+      );
+    }
+
+    const predictionResult = result.prediction;
+
+    // Create one ML result object and use it everywhere.
+    const mlResult = {
+      ...predictionResult,
+      project: result.project,
+      predictionSource: "Random Forest ML Model",
+      createdAt: new Date().toISOString(),
+    };
+
+    // Keep the latest ML result in state.
+    // Persist the latest ML result for this project.
+    // This makes the ML result survive page refresh/reload.
+    const storageKey = `infrawatch_ml_risk_${projectId}`;
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify(mlResult)
+    );
+
+    if (requestId === riskRequestRef.current) {
+      setRisk({
+        ...result,
+        prediction: mlResult,
+      });
+    }
+
+    // IMPORTANT: Do not call fetchRisk() or fetchProjects() here.
+    // Those requests can finish later and overwrite the fresh ML result.
+
+  } catch (error) {
+    console.error("ML Risk Analysis Error:", error);
+
+    const message =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      error.message ||
+      "ML risk prediction failed.";
+
+    setError(message);
+
+  } finally {
+    setRunningAnalysis(false);
+  }
+};
 
   // ==========================================
   // RISK CONFIG
@@ -358,7 +500,7 @@ export default function AIRisk() {
             text-slate-500
           ">
             Predict project risks before they become
-            critical.
+            critical using Random Forest ML.
           </p>
         </div>
 
@@ -803,6 +945,20 @@ export default function AIRisk() {
               : costEscalation > 5
               ? "orange"
               : "green"
+          }
+        />
+
+        <RiskMetric
+          title="ML Confidence"
+          value={`${confidence.toFixed(2)}%`}
+          subtitle="Random Forest confidence"
+          icon={BrainCircuit}
+          type={
+            confidence >= 80
+              ? "green"
+              : confidence >= 60
+              ? "orange"
+              : "red"
           }
         />
 
@@ -1275,7 +1431,14 @@ export default function AIRisk() {
             Prediction Source:{" "}
             <strong className="text-slate-600">
               {prediction.predictionSource ||
-                "Rule Engine"}
+                "Random Forest ML Model"}
+            </strong>
+          </span>
+
+          <span>
+            ML Confidence:{" "}
+            <strong className="text-slate-600">
+              {confidence.toFixed(2)}%
             </strong>
           </span>
 

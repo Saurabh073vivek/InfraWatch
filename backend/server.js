@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
 
+const mlRiskRoutes = require("./routes/mlRiskRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const progressRoutes = require("./routes/progressRoutes");
 const riskRoutes = require("./routes/riskRoutes");
@@ -35,6 +36,11 @@ mongoose
 // ==========================================
 // ROUTES
 // ==========================================
+
+app.use(
+  "/api",
+  mlRiskRoutes
+);
 
 app.use(
   "/api/projects",
