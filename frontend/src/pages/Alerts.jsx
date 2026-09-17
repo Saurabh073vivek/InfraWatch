@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { motion } from "framer-motion";
 import {
   AlertTriangle,
   Bell,
@@ -180,7 +179,7 @@ export default function Alerts() {
           HEADER
       ====================================== */}
 
-      <motion.div
+      <div
         initial={{
           opacity: 0,
           y: -10,
@@ -285,7 +284,7 @@ export default function Alerts() {
 
           Refresh
         </button>
-      </motion.div>
+      </div>
 
       {/* =====================================
           ERROR
@@ -360,7 +359,7 @@ export default function Alerts() {
           SEARCH + FILTER
       ====================================== */}
 
-      <motion.div
+      <div
         initial={{
           opacity: 0,
           y: 10,
@@ -467,13 +466,13 @@ export default function Alerts() {
             </option>
           </select>
         </div>
-      </motion.div>
+      </div>
 
       {/* =====================================
           ALERT LIST
       ====================================== */}
 
-      <motion.div
+      <div
         initial={{
           opacity: 0,
           y: 10,
@@ -616,7 +615,7 @@ export default function Alerts() {
 
           </div>
         )}
-      </motion.div>
+      </div>
 
       {/* =====================================
           SYSTEM INFORMATION
@@ -723,7 +722,7 @@ function AlertStat({
   };
 
   return (
-    <motion.div
+    <div
       whileHover={{
         y: -3,
       }}
@@ -780,7 +779,7 @@ function AlertStat({
           <Icon size={19} />
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -853,7 +852,7 @@ function AlertCard({
   const Icon = current.icon;
 
   return (
-    <motion.div
+    <div
       initial={{
         opacity: 0,
         x: -10,
@@ -1011,7 +1010,7 @@ function AlertCard({
 
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
