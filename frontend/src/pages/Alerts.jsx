@@ -17,6 +17,18 @@ import {
 
 const API_URL = "http://localhost:5000/api";
 
+const getAuthConfig = () => {
+  const token = localStorage.getItem("infrawatch_token");
+
+  return token
+    ? {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    : {};
+};
+
 export default function Alerts() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +52,8 @@ export default function Alerts() {
 
       const response = await axios.get(
         `${API_URL}/projects`
+      ,
+        getAuthConfig()
       );
 
       setProjects(
@@ -69,6 +83,8 @@ export default function Alerts() {
 
       const response = await axios.get(
         `${API_URL}/projects`
+      ,
+        getAuthConfig()
       );
 
       setProjects(

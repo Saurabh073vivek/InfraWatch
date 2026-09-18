@@ -8,27 +8,31 @@ const {
   deleteProject,
 } = require("../controllers/projectController");
 
+const {
+  protect,
+  adminOnly,
+} = require("../middleware/authMiddleware");
+
 const router = express.Router();
 
-
 // GET all projects
-router.get("/", getProjects);
-
+router.get("/", protect, getProjects);
 
 // GET single project
-router.get("/:id", getProject);
-
+router.get("/:id", protect, getProject);
 
 // CREATE project
-router.post("/", createProject);
-
+router.post("/", protect, createProject);
 
 // UPDATE project
-router.put("/:id", updateProject);
+router.put("/:id", protect, updateProject);
 
-
-// DELETE project
-router.delete("/:id", deleteProject);
-
+// DELETE project - ADMIN ONLY
+router.delete(
+  "/:id",
+  protect,
+  adminOnly,
+  deleteProject
+);
 
 module.exports = router;

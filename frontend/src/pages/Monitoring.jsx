@@ -30,6 +30,18 @@ import {
 
 const API_URL = "http://localhost:5000/api";
 
+const getAuthConfig = () => {
+  const token = localStorage.getItem("infrawatch_token");
+
+  return token
+    ? {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    : {};
+};
+
 // ==========================================
 // MAIN COMPONENT
 // ==========================================
@@ -61,7 +73,8 @@ export default function Monitoring() {
       setError("");
 
       const response = await axios.get(
-        `${API_URL}/projects`
+        `${API_URL}/projects`,
+        getAuthConfig()
       );
 
       const data = response.data.projects || [];
@@ -74,12 +87,18 @@ export default function Monitoring() {
     } catch (error) {
       console.error(
         "Fetch Projects Error:",
-        error
+        error.response?.data || error
       );
 
-      setError(
-        "Unable to load projects. Please check the backend server."
-      );
+      if (error.response?.status === 401) {
+        setError(
+          "Your session has expired. Please login again."
+        );
+      } else {
+        setError(
+          "Unable to load projects. Please check the backend server."
+        );
+      }
     } finally {
       setLoadingProjects(false);
     }
@@ -103,19 +122,26 @@ export default function Monitoring() {
       setError("");
 
       const response = await axios.get(
-        `${API_URL}/projects/${projectId}/progress`
+        `${API_URL}/projects/${projectId}/progress`,
+        getAuthConfig()
       );
 
       setProgress(response.data.progress || []);
     } catch (error) {
       console.error(
         "Fetch Progress Error:",
-        error
+        error.response?.data || error
       );
 
-      setError(
-        "Unable to load project progress."
-      );
+      if (error.response?.status === 401) {
+        setError(
+          "Your session has expired. Please login again."
+        );
+      } else {
+        setError(
+          "Unable to load project progress."
+        );
+      }
     } finally {
       setLoadingProgress(false);
     }
@@ -195,7 +221,8 @@ export default function Monitoring() {
     try {
       await axios.post(
         `${API_URL}/projects/${selectedProjectId}/progress`,
-        formData
+        formData,
+        getAuthConfig()
       );
 
       setShowAddProgress(false);
@@ -215,10 +242,14 @@ export default function Monitoring() {
         error.response?.data || error
       );
 
-      alert(
-        error.response?.data?.message ||
-          "Failed to add progress."
-      );
+      if (error.response?.status === 401) {
+        alert("Your session has expired. Please login again.");
+      } else {
+        alert(
+          error.response?.data?.message ||
+            "Failed to add progress."
+        );
+      }
     }
   };
 

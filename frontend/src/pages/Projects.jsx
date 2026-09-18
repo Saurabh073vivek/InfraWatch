@@ -21,6 +21,31 @@ import {
 
 import RiskBadge from "../components/RiskBadge";
 
+const API_URL = "http://localhost:5000/api";
+
+const getAuthConfig = () => {
+  const token = localStorage.getItem("infrawatch_token");
+
+  return token
+    ? {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    : {};
+};
+
+const isAdminUser = () => {
+  try {
+    const savedUser = localStorage.getItem("infrawatch_user");
+    return savedUser
+      ? JSON.parse(savedUser)?.role === "admin"
+      : false;
+  } catch {
+    return false;
+  }
+};
+
 export default function Projects() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +69,8 @@ export default function Projects() {
       setError("");
 
       const response = await axios.get(
-        "http://localhost:5000/api/projects"
+        `${API_URL}/projects`,
+        getAuthConfig()
       );
 
       const data = response.data.projects || [];
@@ -113,7 +139,8 @@ export default function Projects() {
 
     try {
       await axios.delete(
-        `http://localhost:5000/api/projects/${id}`
+        `${API_URL}/projects/${id}`,
+        getAuthConfig()
       );
 
       setProjects((prev) =>
@@ -170,8 +197,9 @@ export default function Projects() {
       };
 
       const response = await axios.post(
-        "http://localhost:5000/api/projects",
-        payload
+        `${API_URL}/projects`,
+        payload,
+        getAuthConfig()
       );
 
       const created = response.data.project;
@@ -218,8 +246,9 @@ export default function Projects() {
       };
 
       const response = await axios.put(
-        `http://localhost:5000/api/projects/${updatedProject.id}`,
-        payload
+        `${API_URL}/projects/${updatedProject.id}`,
+        payload,
+        getAuthConfig()
       );
 
       const updated = response.data.project;
@@ -862,14 +891,16 @@ export default function Projects() {
                           }
                         />
 
-                        <ActionButton
-                          icon={Trash2}
-                          title="Delete"
-                          danger
-                          onClick={() =>
-                            deleteProject(project.id)
-                          }
-                        />
+                        {isAdminUser() && (
+                          <ActionButton
+                            icon={Trash2}
+                            title="Delete"
+                            danger
+                            onClick={() =>
+                              deleteProject(project.id)
+                            }
+                          />
+                        )}
 
                       </div>
 

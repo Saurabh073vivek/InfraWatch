@@ -7,6 +7,7 @@ const mlRiskRoutes = require("./routes/mlRiskRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const progressRoutes = require("./routes/progressRoutes");
 const riskRoutes = require("./routes/riskRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
@@ -14,7 +15,12 @@ const app = express();
 // MIDDLEWARE
 // ==========================================
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+  })
+);
+
 app.use(express.json());
 
 // ==========================================
@@ -37,25 +43,15 @@ mongoose
 // ROUTES
 // ==========================================
 
-app.use(
-  "/api",
-  mlRiskRoutes
-);
+app.use("/api/auth", authRoutes);
 
-app.use(
-  "/api/projects",
-  projectRoutes
-);
+app.use("/api", mlRiskRoutes);
 
-app.use(
-  "/api",
-  progressRoutes
-);
+app.use("/api/projects", projectRoutes);
 
-app.use(
-  "/api",
-  riskRoutes
-);
+app.use("/api", progressRoutes);
+
+app.use("/api", riskRoutes);
 
 // ==========================================
 // TEST ROUTE

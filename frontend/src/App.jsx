@@ -1,6 +1,15 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
 import DashboardLayout from "./layouts/DashboardLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
@@ -30,77 +39,89 @@ export default function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* =================================
-            DASHBOARD LAYOUT
-        ================================== */}
+        {/* Public Routes */}
 
-        <Route element={<DashboardLayout />}>
+        <Route
+          path="/login"
+          element={<Login />}
+        />
 
-          {/* Dashboard */}
-          <Route
-            path="/"
-            element={<Dashboard />}
-          />
+        <Route
+          path="/register"
+          element={<Register />}
+        />
 
-          {/* Projects */}
-          <Route
-            path="/projects"
-            element={<Projects />}
-          />
+        {/* Protected Routes */}
 
-          {/* Monitoring */}
-          <Route
-            path="/monitoring"
-            element={<Monitoring />}
-          />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<DashboardLayout />}>
 
-          {/* AI Risk Prediction */}
-          <Route
-            path="/ai-risk"
-            element={<AIRisk />}
-          />
+            <Route
+              path="/"
+              element={<Dashboard />}
+            />
 
-          {/* Alerts */}
-          <Route
-            path="/alerts"
-            element={<Alerts />}
-          />
+            <Route
+              path="/projects"
+              element={<Projects />}
+            />
 
-          {/* Analytics */}
-          <Route
-            path="/analytics"
-            element={<Analytics />}
-          />
+            <Route
+              path="/monitoring"
+              element={<Monitoring />}
+            />
 
-          {/* Project Map */}
-          <Route
-            path="/map"
-            element={<ProjectMap />}
-          />
+            <Route
+              path="/ai-risk"
+              element={<AIRisk />}
+            />
 
-          {/* Reports */}
-          <Route
-            path="/reports"
-            element={<Reports />}
-          />
+            <Route
+              path="/alerts"
+              element={<Alerts />}
+            />
 
-          {/* Settings */}
-          <Route
-            path="/settings"
-            element={
-              <Placeholder title="Settings" />
-            }
-          />
+            <Route
+              path="/analytics"
+              element={<Analytics />}
+            />
 
-          {/* Profile */}
-          <Route
-            path="/profile"
-            element={
-              <Placeholder title="Profile" />
-            }
-          />
+            <Route
+              path="/map"
+              element={<ProjectMap />}
+            />
 
+            <Route
+              path="/reports"
+              element={<Reports />}
+            />
+
+            <Route
+              path="/settings"
+              element={
+                <Placeholder title="Settings" />
+              }
+            />
+
+            <Route
+              path="/profile"
+              element={
+                <Placeholder title="Profile" />
+              }
+            />
+
+          </Route>
         </Route>
+
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/"
+              replace
+            />
+          }
+        />
 
       </Routes>
     </BrowserRouter>

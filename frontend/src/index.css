@@ -15,12 +15,12 @@ body {
   background:
     radial-gradient(
       circle at top right,
-      rgba(99, 102, 241, 0.06),
+      rgba(20, 195, 55, 0.06),
       transparent 30%
     ),
     #fcf6fc;
 
-  color: #0f172a;
+  color:  #0f172a;
 
   font-family:
     Inter,

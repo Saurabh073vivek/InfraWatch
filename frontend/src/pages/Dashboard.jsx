@@ -31,6 +31,16 @@ import RiskBadge from "../components/RiskBadge";
 
 const API = "http://localhost:5000/api";
 
+function getAuthHeaders() {
+  const token = localStorage.getItem("infrawatch_token");
+
+  return token
+    ? {
+        Authorization: `Bearer ${token}`,
+      }
+    : {};
+}
+
 function normalizeProject(project) {
   return {
     ...project,
@@ -103,7 +113,9 @@ export default function Dashboard() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(`${API}/projects`);
+      const response = await fetch(`${API}/projects`, {
+        headers: getAuthHeaders(),
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch projects");
@@ -123,7 +135,10 @@ export default function Dashboard() {
         projectList.map(async (project) => {
           try {
             const progressResponse = await fetch(
-              `${API}/projects/${project.id}/progress`
+              `${API}/projects/${project.id}/progress`,
+              {
+                headers: getAuthHeaders(),
+              }
             );
 
             if (!progressResponse.ok) {

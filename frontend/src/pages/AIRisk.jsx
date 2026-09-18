@@ -20,6 +20,18 @@ import {
 
 const API_URL = "http://localhost:5000/api";
 
+const getAuthConfig = () => {
+  const token = localStorage.getItem("infrawatch_token");
+
+  return token
+    ? {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    : {};
+};
+
 export default function AIRisk() {
 
   const [projects, setProjects] = useState([]);
@@ -55,6 +67,8 @@ export default function AIRisk() {
 
       const response = await axios.get(
         `${API_URL}/projects`
+      ,
+        getAuthConfig()
       );
 
       const data = response.data.projects || [];
@@ -132,6 +146,8 @@ export default function AIRisk() {
       // Load the normal/rule-engine risk from the backend.
       const response = await axios.get(
         `${API_URL}/projects/${projectId}/risk`
+      ,
+        getAuthConfig()
       );
 
       const riskResponse = response.data;
@@ -298,7 +314,9 @@ const runRiskAnalysis = async () => {
 
     // Call Random Forest ML service through backend
     const response = await axios.post(
-      `${API_URL}/projects/${projectId}/ml-risk`
+      `${API_URL}/projects/${projectId}/ml-risk`,
+      {},
+      getAuthConfig()
     );
 
     const result = response.data;

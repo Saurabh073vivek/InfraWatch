@@ -24,6 +24,18 @@ import "leaflet/dist/leaflet.css";
 
 const API_URL = "http://localhost:5000/api";
 
+const getAuthConfig = () => {
+  const token = localStorage.getItem("infrawatch_token");
+
+  return token
+    ? {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    : {};
+};
+
 // ==========================================
 // STATE COORDINATES
 // ==========================================
@@ -198,6 +210,8 @@ export default function ProjectMap() {
 
       const response = await axios.get(
         `${API_URL}/projects`
+      ,
+        getAuthConfig()
       );
 
       const projectList =

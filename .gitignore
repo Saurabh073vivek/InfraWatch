@@ -42,3 +42,5 @@ venv/
 
 # Coverage
 coverage/
+
+JWT_SECRET=

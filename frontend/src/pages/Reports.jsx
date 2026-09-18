@@ -16,6 +16,18 @@ import { motion } from "framer-motion";
 
 const API_URL = "http://localhost:5000/api";
 
+const getAuthConfig = () => {
+  const token = localStorage.getItem("infrawatch_token");
+
+  return token
+    ? {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    : {};
+};
+
 const RISK_COLORS = {
   Low: "bg-green-100 text-green-700",
   Medium: "bg-amber-100 text-amber-700",
@@ -112,6 +124,8 @@ export default function Reports() {
 
       const projectResponse = await axios.get(
         `${API_URL}/projects`
+      ,
+        getAuthConfig()
       );
 
       const projectList =
@@ -124,7 +138,9 @@ export default function Reports() {
           try {
             const response = await axios.get(
               `${API_URL}/projects/${project._id}/progress`
-            );
+            ,
+        getAuthConfig()
+      );
 
             return response.data?.progress || [];
           } catch {

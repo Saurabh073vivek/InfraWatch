@@ -9,7 +9,6 @@ import {
   Map,
   FileText,
   Settings,
-  User,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -51,8 +50,9 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         >
           <div className="flex items-center gap-3">
             <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center 
-              rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 text-white shadow-lg"
+              className="flex h-10 w-10 shrink-0 items-center justify-center
+              rounded-xl bg-gradient-to-br from-blue-600 to-violet-600
+              text-white shadow-lg"
             >
               <BrainCircuit size={21} />
             </div>
@@ -62,6 +62,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                 <h1 className="text-[17px] font-bold tracking-tight text-slate-950">
                   InfraWatch
                 </h1>
+
                 <p className="text-[11px] font-medium text-slate-400">
                   AI Monitoring
                 </p>
@@ -71,8 +72,11 @@ export default function Sidebar({ collapsed, setCollapsed }) {
 
           {!collapsed && (
             <button
+              type="button"
               onClick={() => setCollapsed(true)}
-              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              aria-label="Collapse sidebar"
+              className="rounded-lg p-1.5 text-slate-400 transition
+              hover:bg-slate-100 hover:text-slate-700"
             >
               <ChevronLeft size={18} />
             </button>
@@ -82,7 +86,9 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         {/* Expand button */}
         {collapsed && (
           <button
+            type="button"
             onClick={() => setCollapsed(false)}
+            aria-label="Expand sidebar"
             className="absolute -right-3 top-[62px] flex h-6 w-6
             items-center justify-center rounded-full border
             border-slate-200 bg-white text-slate-500 shadow-sm
@@ -108,7 +114,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                   ${collapsed ? "justify-center px-2" : "gap-3 px-3"}
                   ${
                     isActive
-                     ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20"
+                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20"
                       : "text-slate-500 hover:bg-slate-100 hover:text-slate-950"
                   }
                 `}
@@ -134,21 +140,8 @@ export default function Sidebar({ collapsed, setCollapsed }) {
             `}
           >
             <Settings size={18} />
-            {!collapsed && <span>Settings</span>}
-          </NavLink>
 
-          <NavLink
-            to="/profile"
-            title={collapsed ? "Profile" : ""}
-            className={`
-              mt-1 flex items-center rounded-xl py-2.5 text-[13px]
-              text-slate-500 transition hover:bg-slate-100
-              hover:text-slate-950
-              ${collapsed ? "justify-center" : "gap-3 px-3"}
-            `}
-          >
-            <User size={18} />
-            {!collapsed && <span>Profile</span>}
+            {!collapsed && <span>Settings</span>}
           </NavLink>
         </div>
       </aside>
