@@ -1,4 +1,12 @@
+# 🚀 InfraWatch AI
 
+### Intelligent Infrastructure Project Monitoring & Risk Prediction Platform
+
+> **Predict project risks before they become costly delays.**
+
+InfraWatch AI is an AI-powered web-based infrastructure project monitoring platform designed to track project progress, identify implementation risks, predict cost and schedule issues, and provide early warnings to decision-makers.
+
+The project is developed as a solution for **Smart India Hackathon (SIH) 2026 – Problem Statement SIH26103**.
 
 ---
 
