@@ -8,6 +8,7 @@ const projectRoutes = require("./routes/projectRoutes");
 const progressRoutes = require("./routes/progressRoutes");
 const riskRoutes = require("./routes/riskRoutes");
 const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 
@@ -52,6 +53,8 @@ app.use("/api/projects", projectRoutes);
 app.use("/api", progressRoutes);
 
 app.use("/api", riskRoutes);
+
+app.use("/api/users", userRoutes);
 
 // ==========================================
 // TEST ROUTE

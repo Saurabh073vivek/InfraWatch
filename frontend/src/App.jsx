@@ -20,26 +20,18 @@ import Analytics from "./pages/Analytics";
 import ProjectMap from "./pages/ProjectMap";
 import Reports from "./pages/Reports";
 
-function Placeholder({ title }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-10">
-      <h1 className="text-2xl font-bold text-slate-900">
-        {title}
-      </h1>
-
-      <p className="mt-2 text-slate-500">
-        This module will be developed in the upcoming phase.
-      </p>
-    </div>
-  );
-}
+import UserManagement from "./pages/UserManagement";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
 
-        {/* Public Routes */}
+        {/* =========================================
+            PUBLIC ROUTES
+        ========================================= */}
 
         <Route
           path="/login"
@@ -51,67 +43,96 @@ export default function App() {
           element={<Register />}
         />
 
-        {/* Protected Routes */}
+        {/* =========================================
+            PROTECTED ROUTES
+        ========================================= */}
 
         <Route element={<ProtectedRoute />}>
+
           <Route element={<DashboardLayout />}>
 
+            {/* Dashboard */}
             <Route
               path="/"
               element={<Dashboard />}
             />
 
+            {/* Projects */}
             <Route
               path="/projects"
               element={<Projects />}
             />
 
+            {/* Monitoring */}
             <Route
               path="/monitoring"
               element={<Monitoring />}
             />
 
+            {/* AI Risk */}
             <Route
               path="/ai-risk"
               element={<AIRisk />}
             />
 
+            {/* Alerts */}
             <Route
               path="/alerts"
               element={<Alerts />}
             />
 
+            {/* Analytics */}
             <Route
               path="/analytics"
               element={<Analytics />}
             />
 
+            {/* Project Map */}
             <Route
               path="/map"
               element={<ProjectMap />}
             />
 
+            {/* Reports */}
             <Route
               path="/reports"
               element={<Reports />}
             />
 
+            {/* =====================================
+                SETTINGS
+            ===================================== */}
+
             <Route
               path="/settings"
-              element={
-                <Placeholder title="Settings" />
-              }
+              element={<Settings />}
             />
+
+            {/* =====================================
+                ADMIN USER MANAGEMENT
+            ===================================== */}
+
+            <Route
+              path="/user-management"
+              element={<UserManagement />}
+            />
+
+            {/* =====================================
+                PROFILE
+            ===================================== */}
 
             <Route
               path="/profile"
-              element={
-                <Placeholder title="Profile" />
-              }
+              element={<Profile />}
             />
 
           </Route>
+
         </Route>
+
+        {/* =========================================
+            UNKNOWN ROUTE
+        ========================================= */}
 
         <Route
           path="*"
