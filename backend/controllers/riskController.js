@@ -2,8 +2,8 @@ const Project = require("../models/Project");
 const RiskPrediction = require("../models/RiskPrediction");
 
 const {
-  calculateRisk,
-} = require("../services/riskEngine");
+  executeAuthoritativeRiskPrediction,
+} = require("./mlRiskController");
 
 // ==========================================
 // PREDICT PROJECT RISK
@@ -17,70 +17,27 @@ const predictProjectRisk = async (
   try {
     const { id } = req.params;
 
-    const project =
-      await Project.findById(id);
-
-    if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: "Project not found",
-      });
-    }
-
-    // Calculate risk
-    const risk = await calculateRisk(
-      project
-    );
-
-    // Save prediction
-    const prediction =
-      await RiskPrediction.create({
-        projectId: project._id,
-        riskScore: risk.riskScore,
-        riskLevel: risk.riskLevel,
-        progressGap: risk.progressGap,
-        costEscalation:
-          risk.costEscalation,
-        factors: risk.factors,
-        predictionSource:
-          "Rule Engine",
-      });
-
-    // Update project
-    project.riskScore =
-      risk.riskScore;
-
-    project.riskLevel =
-      risk.riskLevel;
-
-    // Automatically update status
-    if (
-      risk.riskLevel === "Critical" ||
-      risk.riskLevel === "High"
-    ) {
-      project.status = "At Risk";
-    }
-
-    await project.save();
+    const result =
+      await executeAuthoritativeRiskPrediction(id);
 
     res.status(200).json({
       success: true,
       message:
-        "Risk prediction generated successfully",
+        "Authoritative risk prediction generated successfully",
 
-      prediction,
+      prediction: result.prediction,
 
       project: {
-        id: project._id,
+        id: result.project._id,
         projectCode:
-          project.projectCode,
-        name: project.name,
+          result.project.projectCode,
+        name: result.project.name,
         riskScore:
-          project.riskScore,
+          result.project.riskScore,
         riskLevel:
-          project.riskLevel,
+          result.project.riskLevel,
         status:
-          project.status,
+          result.project.status,
       },
     });
   } catch (error) {
@@ -89,10 +46,10 @@ const predictProjectRisk = async (
       error.message
     );
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message:
-        "Failed to generate risk prediction",
+        error.message || "Failed to generate risk prediction",
       error: error.message,
     });
   }
@@ -130,13 +87,16 @@ const getProjectRisk = async (
     res.status(200).json({
       success: true,
 
-      risk: {
-        riskScore:
-          project.riskScore || 0,
-
-        riskLevel:
-          project.riskLevel || "Low",
-      },
+      risk: prediction
+        ? {
+            riskScore: prediction.riskScore,
+            riskLevel: prediction.riskLevel,
+            confidence: prediction.confidence,
+            progressGap: prediction.progressGap,
+            costEscalation: prediction.costEscalation,
+            predictionDate: prediction.predictionDate,
+          }
+        : null,
 
       prediction:
         prediction || null,

@@ -74,6 +74,15 @@ const STATE_COORDINATES = {
   Goa: [15.2993, 74.1240],
 };
 
+const CITY_COORDINATES = {
+  Ahmedabad: [23.0225, 72.5714],
+  Guwahati: [26.1445, 91.7362],
+  Patna: [25.5941, 85.1376],
+  Prayagraj: [25.4358, 81.8463],
+  Mumbai: [19.0760, 72.8777],
+  Jaipur: [26.9124, 75.7873],
+};
+
 // ==========================================
 // DEFAULT INDIA LOCATION
 // ==========================================
@@ -172,15 +181,38 @@ const getCoordinates = (project) => {
     ];
   }
 
-  const state =
-    project.state ||
-    project.location ||
-    "";
+  const locationText = `${project.location || ""} ${
+    project.state || ""
+  }`.toLowerCase();
+
+  const city = Object.keys(CITY_COORDINATES).find(
+    (name) => locationText.includes(name.toLowerCase())
+  );
+
+  if (city) {
+    return CITY_COORDINATES[city];
+  }
+
+  const state = Object.keys(STATE_COORDINATES).find(
+    (name) => locationText.includes(name.toLowerCase())
+  );
 
   return (
     STATE_COORDINATES[state] ||
     INDIA_CENTER
   );
+};
+
+const getOffsetCoordinates = (coordinates, occurrence) => {
+  if (occurrence === 0) return coordinates;
+
+  const angle = ((occurrence - 1) * 60 * Math.PI) / 180;
+  const radius = 0.12 * Math.ceil(occurrence / 6);
+
+  return [
+    coordinates[0] + Math.sin(angle) * radius,
+    coordinates[1] + Math.cos(angle) * radius,
+  ];
 };
 
 // ==========================================
@@ -217,13 +249,33 @@ export default function ProjectMap() {
       const projectList =
         response.data?.projects || [];
 
-      const mappedProjects = projectList.map(
-        (project) => ({
+      const coordinateOccurrences = new Map();
+
+      const mappedProjects = projectList.map((project) => {
+        const baseCoordinates = getCoordinates(project);
+        const coordinateKey = baseCoordinates.join(",");
+        const occurrence = coordinateOccurrences.get(coordinateKey) || 0;
+
+        coordinateOccurrences.set(
+          coordinateKey,
+          occurrence + 1
+        );
+
+        return {
           ...project,
-          coordinates:
-            getCoordinates(project),
-        })
-      );
+          riskLevel: project.riskUpdatedAt
+            ? project.riskLevel
+            : "Not analyzed",
+          riskScore: project.riskUpdatedAt
+            ? project.riskScore
+            : null,
+          coordinates: getOffsetCoordinates(
+            baseCoordinates,
+            occurrence
+          ),
+          baseCoordinates,
+        };
+      });
 
       setProjects(mappedProjects);
 
@@ -510,10 +562,8 @@ export default function ProjectMap() {
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              {filteredProjects.length} project
-              {filteredProjects.length !== 1
-                ? "s"
-                : ""}{" "}
+              {filteredProjects.length} of {projects.length} project
+              {projects.length !== 1 ? "s" : ""}{" "}
               displayed on map
             </p>
           </div>
@@ -609,9 +659,10 @@ export default function ProjectMap() {
                             </span>
 
                             <strong>
-                              {project.riskScore ||
-                                0}
-                              /100
+                              {project.riskScore === null ||
+                              project.riskScore === undefined
+                                ? "Not analyzed"
+                                : `${project.riskScore}/100`}
                             </strong>
                           </div>
 
@@ -848,7 +899,12 @@ export default function ProjectMap() {
 
               <MiniStat
                 label="Risk Score"
-                value={`${selectedProject.riskScore || 0}/100`}
+                value={
+                  selectedProject.riskScore === null ||
+                  selectedProject.riskScore === undefined
+                    ? "Not analyzed"
+                    : `${selectedProject.riskScore}/100`
+                }
               />
 
               <MiniStat

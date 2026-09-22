@@ -128,8 +128,17 @@ export default function Reports() {
         getAuthConfig()
       );
 
-      const projectList =
-        projectResponse.data?.projects || [];
+      const projectList = (
+        projectResponse.data?.projects || []
+      ).map((project) => ({
+        ...project,
+        riskLevel: project.riskUpdatedAt
+          ? project.riskLevel
+          : "Not analyzed",
+        riskScore: project.riskUpdatedAt
+          ? project.riskScore
+          : null,
+      }));
 
       setProjects(projectList);
 
@@ -230,8 +239,9 @@ export default function Reports() {
 
       highRisk: projects.filter(
         (p) =>
-          p.riskLevel === "High" ||
-          p.riskLevel === "Critical"
+          p.riskUpdatedAt &&
+          (p.riskLevel === "High" ||
+            p.riskLevel === "Critical")
       ).length,
 
       approved,
@@ -720,7 +730,12 @@ export default function Reports() {
 
             <StatCard
               title="Risk Score"
-              value={`${selectedProject.riskScore || 0}/100`}
+              value={
+                selectedProject.riskScore === null ||
+                selectedProject.riskScore === undefined
+                  ? "Not analyzed"
+                  : `${selectedProject.riskScore}/100`
+              }
               subtitle="Current risk score"
               icon={ShieldAlert}
               bg="bg-red-50"
@@ -937,11 +952,10 @@ export default function Reports() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-slate-900">
-                  {selectedProject.riskScore ||
-                    0}
-                  <span className="text-base text-slate-400">
-                    /100
-                  </span>
+                  {selectedProject.riskScore === null ||
+                  selectedProject.riskScore === undefined
+                    ? "Not analyzed"
+                    : `${selectedProject.riskScore}/100`}
                 </p>
               </div>
 
@@ -960,7 +974,7 @@ export default function Reports() {
                     }`}
                   >
                     {selectedProject.riskLevel ||
-                      "Low"}
+                      "Not analyzed"}
                   </span>
                 </p>
               </div>
@@ -973,6 +987,45 @@ export default function Reports() {
                 <p className="mt-2 text-xl font-bold text-slate-900">
                   {selectedProject.status ||
                     "N/A"}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 p-5">
+                <p className="text-xs text-slate-500">
+                  ML Confidence
+                </p>
+
+                <p className="mt-2 text-xl font-bold text-slate-900">
+                  {selectedProject.riskConfidence === null ||
+                  selectedProject.riskConfidence === undefined
+                    ? "Not analyzed"
+                    : `${selectedProject.riskConfidence}%`}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 p-5">
+                <p className="text-xs text-slate-500">
+                  Progress Gap
+                </p>
+
+                <p className="mt-2 text-xl font-bold text-slate-900">
+                  {selectedProject.riskProgressGap === null ||
+                  selectedProject.riskProgressGap === undefined
+                    ? "Not analyzed"
+                    : `${selectedProject.riskProgressGap}%`}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 p-5">
+                <p className="text-xs text-slate-500">
+                  Cost Escalation
+                </p>
+
+                <p className="mt-2 text-xl font-bold text-slate-900">
+                  {selectedProject.riskCostEscalation === null ||
+                  selectedProject.riskCostEscalation === undefined
+                    ? "Not analyzed"
+                    : `${selectedProject.riskCostEscalation}%`}
                 </p>
               </div>
 
@@ -1002,13 +1055,15 @@ export default function Reports() {
               physical progress with a risk
               score of{" "}
               <strong>
-                {selectedProject.riskScore ||
-                  0}/100
+                {selectedProject.riskScore === null ||
+                selectedProject.riskScore === undefined
+                  ? "Not analyzed"
+                  : `${selectedProject.riskScore}/100`}
               </strong>
               . The current risk level is{" "}
               <strong>
                 {selectedProject.riskLevel ||
-                  "Low"}
+                  "Not analyzed"}
               </strong>{" "}
               and the implementation status is{" "}
               <strong>

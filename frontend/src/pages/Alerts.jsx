@@ -105,14 +105,14 @@ export default function Alerts() {
   // ALERT LEVEL
   // ==========================================
 
-  const getAlertLevel = (score) => {
-    const value = Number(score || 0);
+  const getAlertLevel = (project) => {
+    if (!project?.riskUpdatedAt) return null;
 
-    if (value >= 75) return "Critical";
-    if (value >= 50) return "High";
-    if (value >= 25) return "Warning";
-
-    return "Normal";
+    return ["Low", "Medium", "High", "Critical"].includes(
+      project.riskLevel
+    )
+      ? project.riskLevel
+      : null;
   };
 
   // ==========================================
@@ -121,14 +121,10 @@ export default function Alerts() {
 
   const alertProjects = useMemo(() => {
     return projects.filter((project) => {
-      const score =
-        Number(project.riskScore || 0);
-
-      const level =
-        getAlertLevel(score);
+      const level = getAlertLevel(project);
 
       // Normal projects are not shown
-      if (level === "Normal") {
+      if (!level || level === "Low") {
         return false;
       }
 
@@ -163,26 +159,24 @@ export default function Alerts() {
   // ==========================================
 
   const statistics = useMemo(() => {
-    let warning = 0;
+    let medium = 0;
     let high = 0;
     let critical = 0;
 
     projects.forEach((project) => {
-      const level = getAlertLevel(
-        project.riskScore
-      );
+      const level = getAlertLevel(project);
 
-      if (level === "Warning") warning++;
+      if (level === "Medium") medium++;
       if (level === "High") high++;
       if (level === "Critical") critical++;
     });
 
     return {
-      warning,
+      medium,
       high,
       critical,
       total:
-        warning +
+        medium +
         high +
         critical,
     };
@@ -346,8 +340,8 @@ export default function Alerts() {
         />
 
         <AlertStat
-          title="Warnings"
-          value={statistics.warning}
+          title="Medium Risk"
+          value={statistics.medium}
           subtitle="Medium risk projects"
           icon={AlertTriangle}
           type="orange"
@@ -469,8 +463,8 @@ export default function Alerts() {
               All Alerts
             </option>
 
-            <option value="Warning">
-              Warnings
+            <option value="Medium">
+              Medium Risk
             </option>
 
             <option value="High">
@@ -807,19 +801,11 @@ function AlertCard({
   project,
   index,
 }) {
-  const score =
-    Number(project.riskScore || 0);
-
-  let level = "Warning";
-
-  if (score >= 75) {
-    level = "Critical";
-  } else if (score >= 50) {
-    level = "High";
-  }
+  const score = Number(project.riskScore || 0);
+  const level = project.riskLevel;
 
   const config = {
-    Warning: {
+    Medium: {
       icon: AlertTriangle,
       iconBox:
         "bg-amber-100 text-amber-600",
@@ -830,7 +816,7 @@ function AlertCard({
       title:
         "Project requires attention",
       message:
-        "Project risk has reached a warning level. Review current progress and implementation factors.",
+        "Project risk requires increased monitoring and corrective action.",
     },
 
     High: {

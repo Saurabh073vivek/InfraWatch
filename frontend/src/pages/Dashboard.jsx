@@ -49,13 +49,15 @@ function normalizeProject(project) {
     code: project.projectCode || project.code || "N/A",
     location: project.location || project.state || "N/A",
     progress: Number(project.physicalProgress ?? project.progress ?? 0),
-    risk: project.riskLevel || project.risk || "Low",
-    riskScore: Number(project.riskScore ?? 0),
+    risk: project.riskUpdatedAt
+      ? project.riskLevel
+      : "Not analyzed",
+    riskScore: project.riskUpdatedAt
+      ? Number(project.riskScore)
+      : null,
     status: project.status || "On Track",
     approvedCost: Number(project.approvedCost ?? 0),
-    revisedCost: Number(
-      project.revisedCost ?? project.approvedCost ?? 0
-    ),
+    revisedCost: project.revisedCost,
     ministry: project.ministry || "N/A",
     sector: project.sector || "N/A",
   };
@@ -82,6 +84,17 @@ const pdfStyles = `
   .pdf-section {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  .pdf-page {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .pdf-page img,
+  .pdf-page svg {
+    max-width: 100%;
+    height: auto;
   }
 `;
 
@@ -209,19 +222,32 @@ export default function Dashboard() {
       high +
       critical;
 
-    const approvedCost = projects.reduce(
-      (sum, project) => sum + project.approvedCost,
+    const totalApprovedCost = projects.reduce(
+      (sum, project) =>
+        sum + Number(project.approvedCost || 0),
       0
     );
 
-    const revisedCost = projects.reduce(
-      (sum, project) => sum + project.revisedCost,
+    const totalRevisedCost = projects.reduce(
+      (sum, project) => {
+        const revised =
+          project.revisedCost === 0 ||
+          project.revisedCost === null ||
+          project.revisedCost === undefined
+            ? project.approvedCost
+            : project.revisedCost;
+
+        return sum + Number(revised || 0);
+      },
       0
     );
 
-    const costEscalation =
-      approvedCost > 0
-        ? ((revisedCost - approvedCost) / approvedCost) * 100
+    const costVariance =
+      totalRevisedCost - totalApprovedCost;
+
+    const escalation =
+      totalApprovedCost > 0
+        ? (costVariance / totalApprovedCost) * 100
         : 0;
 
     const averageProgress =
@@ -241,9 +267,10 @@ export default function Dashboard() {
       high,
       critical,
       atRisk,
-      approvedCost,
-      revisedCost,
-      costEscalation,
+      totalApprovedCost,
+      totalRevisedCost,
+      costVariance,
+      escalation,
       averageProgress,
     };
   }, [projects]);
@@ -432,7 +459,7 @@ export default function Dashboard() {
       cloneWrapper.style.position = "fixed";
       cloneWrapper.style.left = "-100000px";
       cloneWrapper.style.top = "0";
-      cloneWrapper.style.width = "1400px";
+      cloneWrapper.style.width = "794px";
       cloneWrapper.style.background = "#0f172a";
       cloneWrapper.style.zIndex = "-1";
       cloneWrapper.style.overflow = "visible";
@@ -440,8 +467,9 @@ export default function Dashboard() {
       const clone = element.cloneNode(true);
 
       clone.id = "infrawatch-pdf-clone";
-      clone.style.width = "1400px";
-      clone.style.maxWidth = "1400px";
+      clone.style.width = "794px";
+      clone.style.maxWidth = "794px";
+      clone.classList.add("pdf-page");
       clone.style.background = "#0f172a";
       clone.style.overflow = "visible";
 
@@ -559,7 +587,7 @@ export default function Dashboard() {
         },
 
         html2canvas: {
-          scale: 1.5,
+          scale: 2,
           useCORS: true,
           allowTaint: false,
           backgroundColor: "#0f172a",
@@ -567,7 +595,7 @@ export default function Dashboard() {
           imageTimeout: 20000,
           scrollX: 0,
           scrollY: 0,
-          windowWidth: 1400,
+          windowWidth: 794,
           windowHeight: clone.scrollHeight,
           foreignObjectRendering: false,
         },
@@ -575,13 +603,13 @@ export default function Dashboard() {
         jsPDF: {
           unit: "mm",
           format: "a4",
-          orientation: "landscape",
+          orientation: "portrait",
           compress: true,
         },
 
         pagebreak: {
           mode: ["css", "legacy"],
-          avoid: [".pdf-section"],
+          avoid: [".pdf-section", ".pdf-page"],
         },
       };
 
@@ -682,15 +710,15 @@ export default function Dashboard() {
           opacity: 1,
           y: 0,
         }}
-        className="pdf-section relative min-h-[175px] overflow-hidden rounded-2xl shadow-lg"
+        className="pdf-section relative min-h-[175px] overflow-visible rounded-2xl shadow-lg"
       >
         <img
           src="/infrastructure-banner.png"
           alt="Infrastructure"
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full rounded-2xl object-cover"
         />
 
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-700/95 via-blue-600/70 to-violet-600/30" />
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-700/95 via-blue-600/70 to-violet-600/30" />
 
         <div className="relative z-10 flex min-h-[175px] flex-col justify-between p-6">
 
@@ -730,9 +758,9 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className="absolute bottom-5 right-5 flex items-center gap-2">
+          <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
 
-            <div className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/15 px-3 py-2 text-xs font-semibold text-white backdrop-blur-md">
+            <div className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border border-white/20 bg-white/15 px-3 py-2 text-xs font-semibold text-white backdrop-blur-md">
               <CalendarDays size={14} />
               {today}
             </div>
@@ -743,7 +771,7 @@ export default function Dashboard() {
               disabled={exporting}
               title="Download dashboard as PDF"
               aria-label="Download dashboard as PDF"
-              className={`flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-blue-700 shadow-lg transition ${
+              className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-blue-700 shadow-lg transition ${
                 exporting
                   ? "cursor-not-allowed opacity-70"
                   : "hover:-translate-y-0.5 hover:bg-blue-50"
@@ -1323,11 +1351,8 @@ export default function Dashboard() {
             <Insight
               icon={IndianRupee}
               title="Cost Variance"
-              value={formatCr(
-                stats.revisedCost -
-                  stats.approvedCost
-              )}
-              text={`${stats.costEscalation.toFixed(
+              value={formatCr(stats.costVariance)}
+              text={`${stats.escalation.toFixed(
                 1
               )}% overall escalation`}
               type="green"

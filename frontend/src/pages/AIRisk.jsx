@@ -114,36 +114,11 @@ export default function AIRisk() {
 
   const fetchRisk = async (projectId) => {
     const requestId = ++riskRequestRef.current;
-    const storageKey = `infrawatch_ml_risk_${projectId}`;
-    let savedPrediction = null;
-
-    const savedML = localStorage.getItem(storageKey);
-
-    if (savedML) {
-      try {
-        savedPrediction = JSON.parse(savedML);
-
-        if (!savedPrediction?.riskLevel) {
-          savedPrediction = null;
-          localStorage.removeItem(storageKey);
-        }
-      } catch (storageError) {
-        console.warn("Invalid saved ML prediction:", storageError);
-        localStorage.removeItem(storageKey);
-      }
-    }
-
-    if (savedPrediction) {
-      setRisk({
-        prediction: savedPrediction,
-      });
-    }
 
     try {
       setLoadingRisk(true);
       setError("");
 
-      // Load the normal/rule-engine risk from the backend.
       const response = await axios.get(
         `${API_URL}/projects/${projectId}/risk`
       ,
@@ -151,13 +126,6 @@ export default function AIRisk() {
       );
 
       const riskResponse = response.data;
-
-      // Restore the latest Random Forest result if it was already
-      // generated for this project. This prevents the UI from
-      // falling back to 25/100 and 0% confidence after refresh.
-      if (savedPrediction) {
-        riskResponse.prediction = savedPrediction;
-      }
 
       if (requestId === riskRequestRef.current) {
         setRisk(riskResponse);
@@ -169,11 +137,7 @@ export default function AIRisk() {
       );
 
       if (requestId === riskRequestRef.current) {
-        setRisk(
-          savedPrediction
-            ? { prediction: savedPrediction }
-            : null
-        );
+        setRisk(null);
       }
 
       if (
@@ -208,43 +172,37 @@ export default function AIRisk() {
   // RISK DATA
   // ==========================================
 
-  const riskData = risk?.risk || {};
-
   const prediction =
     risk?.prediction || null;
 
-  // Latest ML result has priority over the initial rule-engine result.
-  const riskScore = Number(
-    prediction?.riskScore ??
-      riskData.riskScore ??
-      0
-  );
+  const hasPrediction = Boolean(prediction?.riskLevel);
+
+  const riskScore = hasPrediction
+    ? Number(prediction.riskScore)
+    : null;
 
   const riskLevel =
-    prediction?.riskLevel ||
-    riskData.riskLevel ||
-    "Low";
+    prediction?.riskLevel || "Not analyzed";
 
-  const progressGap = Number(
-    prediction?.progressGap ??
-      riskData.progressGap ??
-      0
-  );
+  const progressGap = hasPrediction
+    ? Number(prediction.progressGap)
+    : null;
 
-  const costEscalation = Number(
-    prediction?.costEscalation ??
-      riskData.costEscalation ??
-      0
-  );
+  const costEscalation = hasPrediction
+    ? Number(prediction.costEscalation)
+    : null;
 
-  const confidence = Number(
-    prediction?.confidence ??
-      0
-  );
+  const confidence = hasPrediction
+    ? Number(prediction.confidence)
+    : null;
 
   // The ML API may not return factors, so create
   // simple explainable factors from its inputs.
   const factors = useMemo(() => {
+    if (!prediction) {
+      return [];
+    }
+
     if (prediction?.factors?.length) {
       return prediction.factors;
     }
@@ -329,32 +287,12 @@ const runRiskAnalysis = async () => {
 
     const predictionResult = result.prediction;
 
-    // Create one ML result object and use it everywhere.
-    const mlResult = {
-      ...predictionResult,
-      project: result.project,
-      predictionSource: "Random Forest ML Model",
-      createdAt: new Date().toISOString(),
-    };
-
-    // Keep the latest ML result in state.
-    // Persist the latest ML result for this project.
-    // This makes the ML result survive page refresh/reload.
-    const storageKey = `infrawatch_ml_risk_${projectId}`;
-    localStorage.setItem(
-      storageKey,
-      JSON.stringify(mlResult)
-    );
-
     if (requestId === riskRequestRef.current) {
       setRisk({
         ...result,
-        prediction: mlResult,
+        prediction: predictionResult,
       });
     }
-
-    // IMPORTANT: Do not call fetchRisk() or fetchProjects() here.
-    // Those requests can finish later and overwrite the fresh ML result.
 
   } catch (error) {
     console.error("ML Risk Analysis Error:", error);
@@ -412,6 +350,18 @@ const runRiskAnalysis = async () => {
           label: "Medium Risk",
           description:
             "Some risk factors require attention.",
+        };
+
+      case "Not analyzed":
+        return {
+          bg: "bg-slate-100",
+          border: "border-slate-200",
+          text: "text-slate-600",
+          darkBg: "bg-slate-500",
+          icon: Activity,
+          label: "Not analyzed",
+          description:
+            "Run an analysis to generate the authoritative project risk.",
         };
 
       default:
@@ -904,7 +854,7 @@ const runRiskAnalysis = async () => {
 
         <RiskMetric
           title="Risk Score"
-          value={`${riskScore}/100`}
+          value={hasPrediction ? `${riskScore}/100` : "Not analyzed"}
           subtitle="Overall calculated risk"
           icon={ShieldAlert}
           type={
@@ -932,21 +882,21 @@ const runRiskAnalysis = async () => {
 
         <RiskMetric
           title="Progress Gap"
-          value={`${Math.abs(
-            progressGap
-          )}%`}
+          value={hasPrediction ? `${Math.abs(progressGap)}%` : "Not analyzed"}
           subtitle={
-            progressGap > 0
+            !hasPrediction
+              ? "Run analysis to calculate"
+              : progressGap > 0
               ? "Behind planned progress"
               : "On / ahead of plan"
           }
           icon={
-            progressGap > 0
+            hasPrediction && progressGap > 0
               ? TrendingDown
               : TrendingUp
           }
           type={
-            progressGap > 0
+            hasPrediction && progressGap > 0
               ? "red"
               : "green"
           }
@@ -954,13 +904,13 @@ const runRiskAnalysis = async () => {
 
         <RiskMetric
           title="Cost Escalation"
-          value={`${costEscalation}%`}
+          value={hasPrediction ? `${costEscalation}%` : "Not analyzed"}
           subtitle="Increase from approved cost"
           icon={IndianRupee}
           type={
-            costEscalation > 15
+            hasPrediction && costEscalation > 15
               ? "red"
-              : costEscalation > 5
+              : hasPrediction && costEscalation > 5
               ? "orange"
               : "green"
           }
@@ -968,13 +918,13 @@ const runRiskAnalysis = async () => {
 
         <RiskMetric
           title="ML Confidence"
-          value={`${confidence.toFixed(2)}%`}
+          value={hasPrediction ? `${confidence.toFixed(2)}%` : "Not analyzed"}
           subtitle="Random Forest confidence"
           icon={BrainCircuit}
           type={
-            confidence >= 80
+            hasPrediction && confidence >= 80
               ? "green"
-              : confidence >= 60
+              : hasPrediction && confidence >= 60
               ? "orange"
               : "red"
           }
@@ -1037,7 +987,7 @@ const runRiskAnalysis = async () => {
             justify-center
           ">
             <RiskGauge
-              score={riskScore}
+              score={hasPrediction ? riskScore : null}
               level={riskLevel}
             />
           </div>
@@ -1456,7 +1406,9 @@ const runRiskAnalysis = async () => {
           <span>
             ML Confidence:{" "}
             <strong className="text-slate-600">
-              {confidence.toFixed(2)}%
+              {hasPrediction
+                ? `${confidence.toFixed(2)}%`
+                : "Not analyzed"}
             </strong>
           </span>
 
@@ -1660,7 +1612,7 @@ function RiskGauge({
           font-bold
           text-slate-950
         ">
-          {safeScore}
+          {score === null || score === undefined ? "--" : safeScore}
         </span>
 
         <span className="

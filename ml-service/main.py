@@ -1,6 +1,6 @@
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import joblib
 import pandas as pd
 
@@ -10,13 +10,13 @@ MODEL_PATH = BASE / "model" / "risk_model.pkl"
 bundle = None
 
 class ProjectData(BaseModel):
-    physicalProgress: float
-    financialProgress: float
-    plannedProgress: float
-    actualProgress: float
-    approvedCost: float
-    revisedCost: float
-    expenditure: float
+    physicalProgress: float = Field(ge=0, le=100)
+    financialProgress: float = Field(ge=0, le=100)
+    plannedProgress: float = Field(ge=0, le=100)
+    actualProgress: float = Field(ge=0, le=100)
+    approvedCost: float = Field(ge=0)
+    revisedCost: float = Field(ge=0)
+    expenditure: float = Field(ge=0)
 
 @app.on_event("startup")
 def load_model():
@@ -40,8 +40,8 @@ def predict_risk(data: ProjectData):
     if bundle is None:
         raise HTTPException(503, "ML model is not loaded. Run python train_model.py first.")
 
-    gap = data.plannedProgress - data.actualProgress
-    escalation = ((data.revisedCost-data.approvedCost)/data.approvedCost*100) if data.approvedCost else 0
+    gap = max(0, data.plannedProgress - data.actualProgress)
+    escalation = max(0, ((data.revisedCost-data.approvedCost)/data.approvedCost*100)) if data.approvedCost else 0
 
     values = pd.DataFrame([{
         "physicalProgress":data.physicalProgress,

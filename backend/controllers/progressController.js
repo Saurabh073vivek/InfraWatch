@@ -1,5 +1,8 @@
 const Progress = require("../models/Progress");
 const Project = require("../models/Project");
+const {
+  executeAuthoritativeRiskPrediction,
+} = require("./mlRiskController");
 
 // ==========================================
 // GET PROGRESS FOR A PROJECT
@@ -94,10 +97,23 @@ const addProgress = async (req, res) => {
 
     await project.save();
 
+    const riskResult =
+      await executeAuthoritativeRiskPrediction(id);
+
     res.status(201).json({
       success: true,
       message: "Progress added successfully",
       progress,
+      prediction: riskResult.prediction,
+      project: {
+        id: riskResult.project._id,
+        riskScore: riskResult.project.riskScore,
+        riskLevel: riskResult.project.riskLevel,
+        riskConfidence: riskResult.project.riskConfidence,
+        riskProgressGap: riskResult.project.riskProgressGap,
+        riskCostEscalation: riskResult.project.riskCostEscalation,
+        riskUpdatedAt: riskResult.project.riskUpdatedAt,
+      },
     });
   } catch (error) {
     console.error(
@@ -105,7 +121,7 @@ const addProgress = async (req, res) => {
       error.message
     );
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: "Failed to add progress",
       error: error.message,

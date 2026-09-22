@@ -90,7 +90,12 @@ export default function Projects() {
     id: project._id,
     code: project.projectCode,
     progress: project.physicalProgress || 0,
-    risk: project.riskLevel || "Low",
+    risk: project.riskUpdatedAt
+      ? project.riskLevel
+      : "Not analyzed",
+    riskScore: project.riskUpdatedAt
+      ? project.riskScore
+      : null,
     budget: `₹${project.approvedCost || 0} Cr`,
     startDate: project.startDate
       ? new Date(project.startDate).toLocaleDateString("en-IN", {
@@ -192,8 +197,6 @@ export default function Projects() {
         physicalProgress: 0,
         financialProgress: 0,
         status: "On Track",
-        riskScore: 20,
-        riskLevel: "Low",
       };
 
       const response = await axios.post(
@@ -301,7 +304,7 @@ export default function Projects() {
             Project Management
           </p>
 
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950">
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-green-500">
             Infrastructure Projects
           </h1>
 
@@ -845,12 +848,15 @@ export default function Projects() {
                           mt-1 text-[9px]
                           text-slate-400
                         ">
-                          Score:{" "}
+                            Score:{" "}
                           <span className="
                             font-bold
                             text-slate-600
                           ">
-                            {project.riskScore}%
+                            {project.riskScore === null ||
+                            project.riskScore === undefined
+                              ? "Not analyzed"
+                              : `${project.riskScore}%`}
                           </span>
                         </p>
                       </div>
@@ -1706,7 +1712,10 @@ function ProjectDetails({
               font-bold
               text-slate-950
             ">
-              {project.riskScore}%
+              {project.riskScore === null ||
+              project.riskScore === undefined
+                ? "Not analyzed"
+                : `${project.riskScore}%`}
             </p>
 
           </div>

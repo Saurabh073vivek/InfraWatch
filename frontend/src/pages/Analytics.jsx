@@ -142,7 +142,17 @@ export default function Analytics() {
         getAuthConfig()
       );
 
-      const projectList = projectResponse.data?.projects || [];
+      const projectList = (
+        projectResponse.data?.projects || []
+      ).map((project) => ({
+        ...project,
+        riskLevel: project.riskUpdatedAt
+          ? project.riskLevel
+          : "Not analyzed",
+        riskScore: project.riskUpdatedAt
+          ? project.riskScore
+          : null,
+      }));
 
       setProjects(projectList);
 
@@ -210,15 +220,25 @@ export default function Analytics() {
     );
 
     const totalRevisedCost = projects.reduce(
-      (sum, p) =>
-        sum + Number(p.revisedCost || p.approvedCost || 0),
+      (sum, project) => {
+        const effectiveRevisedCost =
+          project.revisedCost === 0 ||
+          project.revisedCost === null ||
+          project.revisedCost === undefined
+            ? project.approvedCost
+            : project.revisedCost;
+
+        return sum + Number(effectiveRevisedCost ?? 0);
+      },
       0
     );
 
+    const costVariance =
+      totalRevisedCost - totalApprovedCost;
+
     const escalation =
       totalApprovedCost > 0
-        ? ((totalRevisedCost - totalApprovedCost) /
-            totalApprovedCost) *
+        ? (costVariance / totalApprovedCost) *
           100
         : 0;
 
@@ -229,6 +249,7 @@ export default function Analytics() {
       highRisk,
       totalApprovedCost,
       totalRevisedCost,
+      costVariance,
       escalation,
     };
   }, [projects]);
@@ -291,7 +312,9 @@ export default function Analytics() {
     return levels.map((level) => ({
       name: level,
       value: projects.filter(
-        (project) => project.riskLevel === level
+        (project) =>
+          project.riskUpdatedAt &&
+          project.riskLevel === level
       ).length,
     }));
   }, [projects]);
@@ -343,8 +366,15 @@ export default function Analytics() {
         project.approvedCost || 0
       );
 
+      const effectiveRevisedCost =
+        project.revisedCost === 0 ||
+        project.revisedCost === null ||
+        project.revisedCost === undefined
+          ? project.approvedCost
+          : project.revisedCost;
+
       const revised = Number(
-        project.revisedCost || approved
+        effectiveRevisedCost ?? 0
       );
 
       const escalation =
@@ -606,9 +636,9 @@ export default function Analytics() {
         />
 
         <StatCard
-          title="Cost Escalation"
-          value={`${summary.escalation.toFixed(1)}%`}
-          subtitle="Overall escalation"
+          title="Cost Variance"
+          value={`₹${formatNumber(summary.costVariance)} Cr`}
+          subtitle={`${summary.escalation.toFixed(1)}% overall escalation`}
           icon={Activity}
           iconBg="bg-amber-50"
           iconColor="text-amber-600"

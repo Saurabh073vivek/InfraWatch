@@ -50,7 +50,6 @@ const projectSchema = new mongoose.Schema(
 
     revisedCost: {
       type: Number,
-      default: 0,
     },
 
     expenditure: {
@@ -97,6 +96,29 @@ const projectSchema = new mongoose.Schema(
       type: String,
       enum: ["Low", "Medium", "High", "Critical"],
       default: "Low",
+    },
+
+    riskConfidence: {
+      type: Number,
+      min: 0,
+      max: 100,
+    },
+
+    riskProgressGap: {
+      type: Number,
+    },
+
+    riskCostEscalation: {
+      type: Number,
+    },
+
+    riskPredictionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "RiskPrediction",
+    },
+
+    riskUpdatedAt: {
+      type: Date,
     },
   },
   {

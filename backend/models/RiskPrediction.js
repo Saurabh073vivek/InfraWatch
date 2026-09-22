@@ -27,6 +27,13 @@ const riskPredictionSchema =
         required: true,
       },
 
+      confidence: {
+        type: Number,
+        required: true,
+        min: 0,
+        max: 100,
+      },
+
       progressGap: {
         type: Number,
         default: 0,
@@ -35,6 +42,11 @@ const riskPredictionSchema =
       costEscalation: {
         type: Number,
         default: 0,
+      },
+
+      predictionDate: {
+        type: Date,
+        default: Date.now,
       },
 
       factors: [

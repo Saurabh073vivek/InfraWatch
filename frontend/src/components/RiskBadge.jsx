@@ -23,6 +23,12 @@ export default function RiskBadge({ level }) {
         "bg-red-50 text-red-700 ring-red-600/10",
       dot: "bg-red-500",
     },
+
+    "Not analyzed": {
+      wrapper:
+        "bg-slate-100 text-slate-600 ring-slate-500/10",
+      dot: "bg-slate-400",
+    },
   };
 
   const style = styles[level] || styles.Medium;
