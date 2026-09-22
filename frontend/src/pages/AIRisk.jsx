@@ -457,7 +457,7 @@ const runRiskAnalysis = async () => {
             text-2xl
             font-bold
             tracking-tight
-            text-slate-950
+            text-green-500
           ">
             AI Risk Prediction
           </h1>

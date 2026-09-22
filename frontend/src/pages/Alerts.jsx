@@ -244,7 +244,7 @@ export default function Alerts() {
             text-2xl
             font-bold
             tracking-tight
-            text-slate-950
+            text-green-500
           ">
             Alerts & Early Warnings
           </h1>

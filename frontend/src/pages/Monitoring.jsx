@@ -307,7 +307,7 @@ export default function Monitoring() {
             text-2xl
             font-bold
             tracking-tight
-            text-slate-950
+            text-green-500
           ">
             Progress Monitoring
           </h1>

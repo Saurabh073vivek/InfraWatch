@@ -157,7 +157,7 @@ export default function UserManagement() {
     <div className="space-y-6">
       {/* HEADER */}
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">
+        <h1 className="text-3xl font-bold text-blue-500">
           User Management
         </h1>
 
